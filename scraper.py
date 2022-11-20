@@ -1,14 +1,10 @@
-# HTTP client
+
+import re
 import time
+import unicodedata
 import requests
-
-# Cookie parser
 from http.cookies import SimpleCookie
-
-# HTML parser
 from bs4 import BeautifulSoup
-
-# Vimeo downloader
 from vimeo_downloader import Vimeo
 
 # Base URL
@@ -44,6 +40,17 @@ def validate_video_id(video_id):
     if not video_id.isdigit():
         return False
     return True
+
+# function to get a valid pathname from a string
+# taken from django source code
+def slugify(value, allow_unicode=False):
+    value = str(value)
+    if allow_unicode:
+        value = unicodedata.normalize('NFKC', value)
+    else:
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(r'[^\w\s-]', '', value.lower())
+    return re.sub(r'[-\s]+', '-', value).strip('-_')
 
 # Iterate over courses
 for course in COURSES:
@@ -99,7 +106,9 @@ for course in COURSES:
                         raise Exception('Invalid video id')
                     
                     # Get the video title
-                    video_name = video_soup.find('h2', {'class': 'text-2xl font-semibold tracking-tight text-slate-700 dark:text-zinc-100'}).text
+                    video_title = video_soup.find('h2', {'class': 'text-2xl font-semibold tracking-tight text-slate-700 dark:text-zinc-100'}).text
+                    video_title = slugify(video_title)
+
 
                     # Get the video iframe response
                     iframe_response = session.get(VIDEO_BASE_URL.replace('VIDEO_ID', video_id))
@@ -110,12 +119,12 @@ for course in COURSES:
                     print("Downloading...")
                     # Added a timeout of 15 seconds on the download method of the Vimeo library
                     downloader = Vimeo(iframe_src, embedded_on=video_url)
-                    downloader.streams[-1].download(download_directory='videos', filename=video_name)
+                    downloader.streams[-1].download(download_directory='videos', filename=video_title)
 
                     # Set the download flag to true
                     video_downloaded = True
-            except:
-                print("Retrying...")
+            except Exception as e:
+                print("Retrying... " + str(e))
                 time.sleep(20)
                 continue
 
