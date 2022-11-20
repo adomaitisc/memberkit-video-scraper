@@ -31,30 +31,7 @@ COOKIES = SimpleCookie().load(RAW_COOKIES)
 
 # HTTP headers
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
     'Cookie': RAW_COOKIES,
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Accept-Language': 'en-US,en;q=0.9',
-}
-
-# HTTP iframe headers
-IFRAME_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
-    'Accept': '*/*',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Connection': 'keep-alive',
-    'DNT': '1',
-    'Host': 'vimeo.com',
-    'Origin': 'https://profissao-investidor.memberkit.com.br',
-    'Referer': 'https://profissao-investidor.memberkit.com.br/',
-    'sec-ch-ua': '"Chromium";v="95", "Google Chrome";v="95", ";Not A Brand";v="24"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"macOS"',
-    'Sec-Fetch-Dest': 'empty',
-    'Sec-Fetch-Mode': 'cors',
-    'Sec-Fetch-Site': 'cross-site',
 }
 
 # function to validade video id
@@ -101,22 +78,22 @@ for course in COURSES:
 
         # attempt to download the video
         while (not video_downloaded) and (attempts < 5):
-            video_url = BASE_URL + video
-            video_response = session.get(video_url, cookies=COOKIES, headers=HEADERS)
-            video_soup = BeautifulSoup(video_response.text, 'html.parser')
+            attempts += 1
+            print("Attempt: " + str(attempts))
 
-            # Skip the unavailable videos
-            if video_soup.find('h1', {'class': 'text-2xl font-semibold tracking-tight'}):
-                print("Video skipped: Content Unavailable")
-                break
-            else:
-                # increment the attempts
-                attempts += 1
+            try:
+                video_url = BASE_URL + video
+                video_response = session.get(video_url, cookies=COOKIES, headers=HEADERS, timeout=15)
+                video_soup = BeautifulSoup(video_response.text, 'html.parser')
 
-                try:
+
+                if video_soup.find('h1', {'class': 'text-2xl font-semibold tracking-tight'}):
+                    print("Video skipped: Content Unavailable")
+                    break
+                else:
                     # Get the video id
                     video_id = video_soup.find('div', {'class': 'aspect-w-16 aspect-h-9 relative z-20'}).get('data-vimeo-uid-value')
-                    
+                        
                     if (not validate_video_id(video_id)):
                         raise Exception('Invalid video id')
                     
@@ -130,14 +107,15 @@ for course in COURSES:
                     iframe_src = iframe_response.json()['html'].split('src="')[1].split('"')[0]
 
                     print("Downloading...")
+                    # Added a timeout of 15 seconds on the download method of the Vimeo library
                     downloader = Vimeo(iframe_src, embedded_on=video_url)
-                    downloader.streams[-1].download(download_directory='videos', filename=video_id)
+                    downloader.streams[-1].download(download_directory='videos', filename=video_name)
 
                     # Set the download flag to true
                     video_downloaded = True
-                except:
-                    print("Retrying...")
-                    continue
+            except:
+                print("Retrying...")
+                continue
 
             if not video_downloaded and attempts == 5:
                 print("Failed to download video")
