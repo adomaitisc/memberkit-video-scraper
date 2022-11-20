@@ -1,4 +1,5 @@
 # HTTP client
+import time
 import requests
 
 # Cookie parser
@@ -77,7 +78,7 @@ for course in COURSES:
         print('Getting video URL from: ' + video)
 
         # attempt to download the video
-        while (not video_downloaded) and (attempts < 5):
+        while (not video_downloaded) and (attempts < 10):
             attempts += 1
             print("Attempt: " + str(attempts))
 
@@ -115,6 +116,7 @@ for course in COURSES:
                     video_downloaded = True
             except:
                 print("Retrying...")
+                time.sleep(20)
                 continue
 
             if not video_downloaded and attempts == 5:
