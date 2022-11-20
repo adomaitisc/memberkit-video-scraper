@@ -57,6 +57,16 @@ IFRAME_HEADERS = {
     'Sec-Fetch-Site': 'cross-site',
 }
 
+# function to validade video id
+def validate_video_id(video_id):
+    if video_id is None:
+        return False
+    if len(video_id) != 9:
+        return False
+    if not video_id.isdigit():
+        return False
+    return True
+
 # Iterate over courses
 for course in COURSES:
     # Videos URLs
@@ -106,7 +116,10 @@ for course in COURSES:
                 try:
                     # Get the video id
                     video_id = video_soup.find('div', {'class': 'aspect-w-16 aspect-h-9 relative z-20'}).get('data-vimeo-uid-value')
-
+                    
+                    if (not validate_video_id(video_id)):
+                        raise Exception('Invalid video id')
+                    
                     # Get the video title
                     video_name = video_soup.find('h2', {'class': 'text-2xl font-semibold tracking-tight text-slate-700 dark:text-zinc-100'}).text
 
